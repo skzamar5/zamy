@@ -9,98 +9,233 @@ const Composite = Matter.Composite;
 
 let engine;
 let world;
-var ground, bridge;
-var leftWall, rightWall;
-var jointPoint;
-var jointLink;
-var zombie1, zombie2, zombie3, zombie4, sadzombie;
-var breakButton;
-var backgroundImage;
+var rope,fruit,ground;
+var fruit_con;
+var fruit_con_2;
+var fruit_con_3;
+var rope3;
 
-var stones = [];
-var collided = false;
-function preload() {
-  zombie1 = loadImage("./assets/zombie1.png");
-  zombie2 = loadImage("./assets/zombie2.png");
+var bg_img;
+var food;
+var rabbit;
 
-  zombie3 = loadImage("./assets/zombie3.png");
-  zombie4 = loadImage("./assets/zombie4.png");
-  sadzombie = loadImage("./assets/sad_zombie.png");
+var button,button2,button3;
+var bunny;
+var blink,eat,sad;
+var mute_btn;
 
-  backgroundImage = loadImage("./assets/background.png");
+var fr;
+
+var bk_song;
+var cut_sound;
+var sad_sound;
+var eating_sound;
+var air;
+
+var star;
+var star_img;
+function preload()
+{
+  bg_img = loadImage('background.png');
+  food = loadImage('melon.png');
+  rabbit = loadImage('Rabbit-01.png');
+  star_img = loadImage('star.png');
+  
+  bk_song = loadSound('sound1.mp3');
+  sad_sound = loadSound("sad.wav")
+  cut_sound = loadSound('rope_cut.mp3');
+  eating_sound = loadSound('eating_sound.mp3');
+  air = loadSound('air.wav');
+
+  blink = loadAnimation("blink_1.png","blink_2.png","blink_3.png");
+  eat = loadAnimation("eat_0.png" , "eat_1.png","eat_2.png","eat_3.png","eat_4.png");
+  sad = loadAnimation("sad_1.png","sad_2.png","sad_3.png");
+
+  empty_star = loadAnimation("empty.png");
+  one_star = loadAnimation("one_star.png");
+  two_star = loadAnimation("stars.png");
+  
+  blink.playing = true;
+  eat.playing = true;
+  sad.playing = true;
+  sad.looping= false;
+  eat.looping = false; 
 }
 
-function setup() {
-  createCanvas(windowWidth, windowHeight);
-  engine = Engine.create();
-  world = engine.world;
+function setup() 
+{
+  createCanvas(600,700);
   frameRate(80);
 
-  ground = new Base(0, height - 10, width * 2, 20);
-  leftWall = new Base(100, height - 300, 200, height / 2 + 100);
-  rightWall = new Base(width - 100, height - 300, 200, height / 2 + 100);
+  bk_song.play();
+  bk_song.setVolume(0.5);
 
-  bridge = new Bridge(30, { x: 50, y: height / 2 - 140 });
-  jointPoint = new Base(width - 250, height / 2 - 100, 40, 20);
+  engine = Engine.create();
+  world = engine.world;
 
-  Matter.Composite.add(bridge.body, jointPoint);
-  jointLink = new Link(bridge, jointPoint);
+  //btn 1
+  button = createImg('cut_btn.png');
+  button.position(100,90);
+  button.size(50,50);
+  button.mouseClicked(drop);
 
-  for (var i = 0; i <= 8; i++) {
-    var x = random(width / 2 - 200, width / 2 + 300);
-    var y = random(-100, 100);
-    var stone = new Stone(x, y, 80, 80);
-    stones.push(stone);
-  }
+   //btn 2
+   button2 = createImg('cut_btn.png');
+   button2.position(450,90);
+   button2.size(50,50);
+   button2.mouseClicked(drop2);
+ 
+   rope = new Rope(7,{x:120,y:90});
+   rope2 = new Rope(7,{x:490,y:90});
 
-  zombie = createSprite(width / 2, height - 100, 50, 50);
-  zombie.addAnimation("lefttoright", zombie1, zombie2, zombie1);
-  zombie.addAnimation("righttoleft", zombie3, zombie4, zombie3);
-  zombie.addImage("sad", sadzombie);
 
-  zombie.scale = 0.1;
-  zombie.velocityX = 10;
+  mute_btn = createImg('mute.png');
+  mute_btn.position(width-50,20);
+  mute_btn.size(50,50);
+  mute_btn.mouseClicked(mute);
+  
+  ground = new Ground(300,height,width,20);
+  blink.frameDelay = 20;
+  eat.frameDelay = 20;
 
-  breakButton = createButton("");
-  breakButton.position(width - 200, height / 2 - 50);
-  breakButton.class("breakbutton");
-  breakButton.mousePressed(handleButtonPress);
+  bunny = createSprite(200,height-80,100,100);
+  bunny.scale = 0.2;
+
+  bunny.addAnimation('blinking',blink);
+  bunny.addAnimation('eating',eat);
+  bunny.addAnimation('crying',sad);
+  bunny.changeAnimation('blinking');
+
+  star_display = createSprite(50,20,30,30);
+  star_display.scale = 0.2;
+  star_display.addAnimation('empty',empty_star);
+  star_display.addAnimation('one',one_star);
+  star_display.addAnimation('two',two_star);
+  star_display.changeAnimation('empty');
+
+  //star sprite
+  star = createSprite(320,50,20,20);
+  star.addImage(star_img);
+  star.scale=0.02;
+
+  star2 = createSprite(50,330,20,20);
+  star2.addImage(star_img);
+  star2.scale=0.02;
+
+  blower = createImg('baloon2.png');
+  blower.position(260,370);
+  blower.size(120,120);
+  blower.mouseClicked(airblow);
+  
+  fruit = Bodies.circle(300,300,20);
+  Matter.Composite.add(rope.body,fruit);
+
+  fruit_con = new Link(rope,fruit);
+  fruit_con_2 = new Link(rope2,fruit);
+
+  rectMode(CENTER);
+  ellipseMode(RADIUS);
+  textSize(50)
+  
 }
 
-function draw() {
-  background(backgroundImage);
+function draw() 
+{
+  background(51);
+  image(bg_img,0,0,width,height);
+
+  push();
+  imageMode(CENTER);
+  if(fruit!=null){
+    image(food,fruit.position.x,fruit.position.y,70,70);
+  }
+  pop();
+
+  rope.show();
+  rope2.show();
+
   Engine.update(engine);
-
-  bridge.show();
-
-  for (var stone of stones) {
-    stone.show();
-    var pos = stone.body.position;
-    var distance = dist(zombie.position.x, zombie.position.y, pos.x, pos.y);
-    if (distance <= 50) {
-      zombie.velocityX = 0;
-      Matter.Body.setVelocity(stone.body, { x: 10, y: -10 });
-      zombie.changeImage("sad");
-      collided = true;
-    }
-  }
-
-  if (zombie.position.x >= width - 300 && !collided) {
-    zombie.velocityX = -10;
-    zombie.changeAnimation("righttoleft");
-  }
-
-  if (zombie.position.x <= 300 && !collided) {
-    zombie.velocityX = 10;
-    zombie.changeAnimation("lefttoright");
-  }
+  ground.show();
 
   drawSprites();
+
+  if(collide(fruit,bunny,80)==true)
+  {
+    World.remove(engine.world,fruit);
+    fruit = null;
+    bunny.changeAnimation('eating');
+    eating_sound.play();
+  }
+
+  if(fruit!=null && fruit.position.y>=650)
+  {
+    bunny.changeAnimation('crying');
+    bk_song.stop();
+    sad_sound.play();
+    fruit=null;
+   }
+
+   if(collide(fruit,star,20)==true)
+   {
+     star.visible = false;
+     star_display.changeAnimation('one');
+   }
+
+   if(collide(fruit,star2,40)==true)
+   {
+     star2.visible= false;
+     star_display.changeAnimation('two');
+   }   
+   
 }
 
-function handleButtonPress() {
-  jointLink.dettach();
-  setTimeout(() => {
-    bridge.break();
-  }, 1500);
+function drop()
+{
+  cut_sound.play();
+  rope.break();
+  fruit_con.dettach();
+  fruit_con = null; 
 }
+
+function drop2()
+{
+  cut_sound.play();
+  rope2.break();
+  fruit_con_2.dettach();
+  fruit_con_2 = null;
+}
+
+function collide(body,sprite,x)
+{
+  if(body!=null)
+        {
+         var d = dist(body.position.x,body.position.y,sprite.position.x,sprite.position.y);
+          if(d<=x)
+            {
+               return true; 
+            }
+            else{
+              return false;
+            }
+         }
+}
+
+
+function mute()
+{
+  if(bk_song.isPlaying())
+     {
+      bk_song.stop();
+     }
+     else{
+      bk_song.play();
+     }
+}
+
+function airblow()
+{
+  Matter.Body.applyForce(fruit,{x:0,y:0},{x:0,y:-0.03});
+  air.play();
+}
+
+

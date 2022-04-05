@@ -1,2 +1,1 @@
-# zombie-crush-3
-project solution of c31
+# C34-final_game
